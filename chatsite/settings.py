@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'app',
+    'authentication',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -85,6 +87,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+AUTH_USER_MODEL = 'authentication.User'
 
 try:
     from .local_settings import *
