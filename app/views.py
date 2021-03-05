@@ -4,6 +4,7 @@ from django.shortcuts import render
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from .models import Message, Settings
 from .serializers import MessageSerializer
 from chatsite.settings import STATIC_ROOT
@@ -38,6 +39,8 @@ def room(request):
 
 
 class MessageView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         messages = Message.objects.all()
         serializer = MessageSerializer(messages, many=True)
@@ -48,9 +51,9 @@ class MessageView(APIView):
         serializer = MessageSerializer(data=message)
         if serializer.is_valid(raise_exception=True):
             message_saved = serializer.save()
-            messages_count = Message.objects.all().count()
-            while messages_count > 300:
-                messages_count = Message.objects.all().count()
+            # messages_count = Message.objects.all().count()
+            # while messages_count > 300:
+            #     messages_count = Message.objects.all().count()
 
 
         return Response({"success": "Message from '{}' saved successfully".format(message_saved.username)})

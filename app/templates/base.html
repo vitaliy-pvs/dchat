@@ -71,23 +71,119 @@
     </font>
 </div>
 
+<div id="modal-overlay"></div>
+<div id="modal">
+    <p>Авторизация</p>
+    <form class="auth_form" action="#" method="post">
+        <label>Логин</label>
+        <input placeholder="Введите логин" required><br>
+        <label>Пароль</label>
+        <input type="password" name="auth_pass" placeholder="Введите пароль" required><br>
+        <button class="form_auth_button" type="submit" name="form_auth_submit">Войти</button>
+    </form>
+</div>
+
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 <script type="text/javascript">
 $(document).ready(function(){
 
-    let data_from_server;
 
-    $.getJSON("http://127.0.0.1:8000/api/messages/",
-       function(data) {
-           let mes = '';
-           for (var i = 0; i < data.messages.length; i++) {
+message_button.onclick = async function() {
+
+let auth_json = {
+ "username": "dchat",
+ "password": "qRM-9B8-PjG-Fyi"
+};
+
+let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json;charset=utf-8'},
+    body: JSON.stringify(auth_json)
+});
+
+let auth_response_json;
+if (auth_response.ok) {
+  auth_response_json = await auth_response.json();
+} else {
+  alert("Ошибка HTTP: " + auth_response.status);
+}
+
+
+  let message_json = {
+    "message":
+        {
+            "timestamp": 40,
+            "username": "JS",
+            "body": message_text.value
+        }
+  };
+  let response = await fetch('http://127.0.0.1:8000/api/messages/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json;charset=utf-8', Authorization: "Bearer " + auth_response_json.access},
+    body: JSON.stringify(message_json)
+  });
+  message_text.value = "";
+};
+
+
+let data_from_server;
+
+async function showMes() {
+
+if(document.getElementById('chat_text')){
+
+let auth_json = {
+ "username": "dchat",
+ "password": "qRM-9B8-PjG-Fyi"
+};
+
+let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json;charset=utf-8'},
+    body: JSON.stringify(auth_json)
+});
+
+let auth_response_json;
+if (auth_response.ok) {
+  auth_response_json = await auth_response.json();
+} else {
+  alert("Ошибка HTTP: " + auth_response.status);
+}
+
+  let mes_response = await fetch('http://127.0.0.1:8000/api/messages/', {
+    method: 'GET',
+    headers: {Authorization: "Bearer " + auth_response_json.access},
+  });
+
+  let data = await mes_response.json();
+  chat_text.innerHTML = "";
+  for (var i = 0; i < data.messages.length; i++) {
                mes = data.messages[i];
                let p_mes = document.createElement('p');
                p_mes.innerHTML = mes.timestamp + mes.username + mes.body;
                chat_text.appendChild(p_mes);
            }
-       }
-    );
+           chat_text.scrollTop = chat_text.scrollHeight;
+}
+};
+
+showMes();
+setInterval(() => showMes(), 3000);
+
+
+
+<!--    $.getJSON("http://127.0.0.1:8000/api/messages/",-->
+<!--       function(data) {-->
+<!--           let mes = '';-->
+<!--           for (var i = 0; i < data.messages.length; i++) {-->
+<!--               mes = data.messages[i];-->
+<!--               let p_mes = document.createElement('p');-->
+<!--               p_mes.innerHTML = mes.timestamp + mes.username + mes.body;-->
+<!--               chat_text.appendChild(p_mes);-->
+<!--           }-->
+<!--           chat_text.scrollTop = chat_text.scrollHeight;-->
+<!--       }-->
+<!--    );-->
 
 
 
@@ -243,6 +339,10 @@ $(document).ready(function(){
        container.style.maxWidth = "{{ settings.page_text_max_width }}px";
     }
 });
+
+
+
+
 
 </script>
 
