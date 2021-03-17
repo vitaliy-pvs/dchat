@@ -52,7 +52,7 @@ auth_button.onclick = async function() {
 		"password": auth_password.value
 	};
 
-	let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
+	let auth_response = await fetch('/api/token/', {
 		method: 'POST',
 		headers: {'Content-Type': 'application/json;charset=utf-8'},
 		body: JSON.stringify(auth_json),
@@ -83,7 +83,7 @@ if (message_text.value.replace(/\s/g, '') != "") {
 		}
 	};
 
-	let response = await fetch('http://127.0.0.1:8000/api/messages/', {
+	let response = await fetch('/api/messages/', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json;charset=utf-8',
@@ -100,7 +100,7 @@ async function showMes() {
 
 	if (document.getElementById('chat_text') && modal.classList.contains('closed')) {
 
-		let mes_response = await fetch('http://127.0.0.1:8000/api/messages/', {
+		let mes_response = await fetch('/api/messages/', {
 			method: 'GET',
 			headers: {Authorization: "Bearer " + auth_response_json.access},
 		});
@@ -144,7 +144,7 @@ async function showMes() {
 
 		} else {
 
-			let refresh_response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+			let refresh_response = await fetch('/api/token/refresh/', {
 				method: 'POST',
 				headers: {'Content-Type': 'application/json;charset=utf-8'},
 				body: JSON.stringify(refresh_request_json),
