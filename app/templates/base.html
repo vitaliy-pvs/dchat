@@ -3,347 +3,171 @@
 <html lang="ru">
 
 <head>
-    <title>{{ settings.site_title }}</title>
+    <title>dchat</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=yes">
     <link rel="stylesheet" href="{% static 'pages.css' %}">
-    {% if favicon_exists %}
-    <link href="{% static 'favicon.png' %}" rel="icon" type="image/png"/>
-    {% endif %}
 </head>
 
 <body>
 
 <div id="wrapper">
-    <font face="Arial, sans-serif">
-
-        <header id="header" style="
-        background-color:{{ settings.header_color }};
-        background-repeat:no-repeat;
-        background-size:cover;">
-            <div id="header__body">
-                <a href="/" id="header__logo">
-                    {% if logo_exists %}
-                    <img src="{% static 'logo.png' %}" alt="logo">
-                    {% endif %}
-                </a>
-                <div id="back-top">
-                    <a href="#" id="up" style="
-                    color:{{ settings.up_button_color }};
-                    border-color:{{ settings.up_button_color }}">НАВЕРХ</a>
-                </div>
-            </div>
-        </header>
-
-        <nav id="header__menu" style="
-        background-color:{{ settings.menu_color }};">
-            <div id="menu_wrap">
-                <hr class="br_menu_line" style="visibility:hidden;">
-                {% for menu_page in menu_pages %}
-                {% if page.number and menu_page.pk == page.pk %}
-                <a href="{% url 'menu_page' pk=menu_page.pk %}" class="menu_page_link"
-                   style="color:{{ settings.menu_text_color }};text-decoration:underline;">{{ menu_page.title }}</a>
-                <br class="br_menu_line">
-                <hr class="br_menu_line" style="visibility:hidden;">
-                {% else %}
-                <a href="{% url 'menu_page' pk=menu_page.pk %}" class="menu_page_link"
-                   style="color:{{ settings.menu_text_color }};">{{ menu_page.title }}</a><br class="br_menu_line">
-                <hr class="br_menu_line" style="visibility:hidden;">
-                {% endif %}
-                {% endfor %}
-            </div>
-        </nav>
-
-        <a href="#" id="header__burger">
-            <div id="bef" style="background-color:{{ settings.up_button_color }};"></div>
-            <div id="mid" style="background-color:{{ settings.up_button_color }};"></div>
-            <div id="aft" style="background-color:{{ settings.up_button_color }};"></div>
-        </a>
-
-        <div id="content" style="background-color:{{ settings.page_color }};">
-            <font color="{{ settings.page_text_color }}" face="Arial, sans-serif">
-                <div id="container">
-                    {% block content %}
-                    {% endblock %}
-                </div>
-            </font>
-        </div>
-    </font>
+    <div id="content" style="background-color:{{ settings.page_color }};">
+        <div id="chat_text"></div>
+        <textarea id="message_text" rows="4" placeholder="Введите текст сообщения"></textarea>
+        <input id="message_button" type="button" value="Отправить сообщение">
+    </div>
 </div>
 
-<div id="modal-overlay"></div>
+<div id="modal_overlay"></div>
+
 <div id="modal">
     <p>Авторизация</p>
-    <form class="auth_form" action="#" method="post">
-        <label>Логин</label>
-        <input placeholder="Введите логин" required><br>
-        <label>Пароль</label>
-        <input type="password" name="auth_pass" placeholder="Введите пароль" required><br>
-        <button class="form_auth_button" type="submit" name="form_auth_submit">Войти</button>
-    </form>
+
+    <label>Логин</label>
+    <input id="auth_login" placeholder="Введите логин" required><br>
+
+    <label>Пароль</label>
+    <input id="auth_password" type="password" placeholder="Введите пароль" required><br>
+
+    <input id="auth_button" type="button" value="Войти">
 </div>
 
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 <script type="text/javascript">
-$(document).ready(function(){
+$(document).ready(function() {
+
+let auth_response_json;
+let refresh_request_json;
+let refresh_response_json;
+let username;
+
+
+auth_button.onclick = async function() {
+
+    username = auth_login.value;
+
+	let auth_json = {
+		"username": auth_login.value,
+		"password": auth_password.value
+	};
+
+	let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json;charset=utf-8'},
+		body: JSON.stringify(auth_json),
+	});
+
+	if (auth_response.ok) {
+		auth_response_json = await auth_response.json();
+		refresh_request_json = {"refresh": auth_response_json.refresh};
+		modal_overlay.classList.add('closed');
+		modal.classList.add('closed');
+	} else {
+		alert("Ошибка HTTP: " + auth_response.status);
+	}
+}
 
 
 message_button.onclick = async function() {
 
-let auth_json = {
- "username": "dchat",
- "password": "qRM-9B8-PjG-Fyi"
-};
+if (message_text.value.replace(/\s/g, '') != "") {
 
-let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json;charset=utf-8'},
-    body: JSON.stringify(auth_json)
-});
+    let date_now = Date.now();
 
-let auth_response_json;
-if (auth_response.ok) {
-  auth_response_json = await auth_response.json();
-} else {
-  alert("Ошибка HTTP: " + auth_response.status);
+	let message_json = {
+		"message": {
+			"timestamp": date_now,
+			"username": username,
+			"body": message_text.value
+		}
+	};
+
+	let response = await fetch('http://127.0.0.1:8000/api/messages/', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json;charset=utf-8',
+			Authorization: "Bearer " + auth_response_json.access
+		},
+		body: JSON.stringify(message_json)
+	});
+	message_text.value = "";
 }
-
-
-  let message_json = {
-    "message":
-        {
-            "timestamp": 40,
-            "username": "JS",
-            "body": message_text.value
-        }
-  };
-  let response = await fetch('http://127.0.0.1:8000/api/messages/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json;charset=utf-8', Authorization: "Bearer " + auth_response_json.access},
-    body: JSON.stringify(message_json)
-  });
-  message_text.value = "";
 };
 
-
-let data_from_server;
 
 async function showMes() {
 
-if(document.getElementById('chat_text')){
+	if (document.getElementById('chat_text') && modal.classList.contains('closed')) {
 
-let auth_json = {
- "username": "dchat",
- "password": "qRM-9B8-PjG-Fyi"
+		let mes_response = await fetch('http://127.0.0.1:8000/api/messages/', {
+			method: 'GET',
+			headers: {Authorization: "Bearer " + auth_response_json.access},
+		});
+
+		let data;
+		let mes_time;
+		let is_scrollTop;
+
+		if (mes_response.ok) {
+			data = await mes_response.json();
+
+			if (chat_text.innerHTML == "") {
+				is_scrollTop = true;
+			} else if (chat_text.scrollTop > chat_text.scrollHeight - chat_text.clientHeight - 5) {
+			    is_scrollTop = true;
+			} else {
+			    is_scrollTop = false;
+			}
+
+			chat_text.innerHTML = "";
+			for (var i = 0; i < data.messages.length; i++) {
+				mes = data.messages[i];
+				let p_mes = document.createElement('p');
+				mes_time = new Date(mes.timestamp);
+
+				p_mes.innerHTML =
+				    `<b style="font-family: Arial, Helvetica, sans-serif;">${mes.username}</b>:
+
+				    <div class="message_container">${mes.body}</div>
+
+				    <span style="font-size:60%;color:grey;">
+			    	${mes_time.getDate()}.${mes_time.getMonth()+1}.${mes_time.getFullYear()}&nbsp;<b>${mes_time.getHours()+1}:${mes_time.getMinutes()}</b>
+			    	</span>`;
+
+				chat_text.appendChild(p_mes);
+			}
+
+			if (is_scrollTop) {
+				chat_text.scrollTop = chat_text.scrollHeight;
+			}
+
+		} else {
+
+			let refresh_response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json;charset=utf-8'},
+				body: JSON.stringify(refresh_request_json),
+			});
+
+			if (refresh_response.ok) {
+				refresh_response_json = await refresh_response.json();
+				auth_response_json.access = refresh_response_json.access;
+				showMes();
+			} else {
+				alert("Refresh failed!!! Ошибка HTTP: " + auth_response.status);
+				modal_overlay.classList.remove('closed');
+				modal.classList.remove('closed');
+			}
+		}
+	}
 };
 
-let auth_response = await fetch('http://127.0.0.1:8000/api/token/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json;charset=utf-8'},
-    body: JSON.stringify(auth_json)
-});
-
-let auth_response_json;
-if (auth_response.ok) {
-  auth_response_json = await auth_response.json();
-} else {
-  alert("Ошибка HTTP: " + auth_response.status);
-}
-
-  let mes_response = await fetch('http://127.0.0.1:8000/api/messages/', {
-    method: 'GET',
-    headers: {Authorization: "Bearer " + auth_response_json.access},
-  });
-
-  let data = await mes_response.json();
-  chat_text.innerHTML = "";
-  for (var i = 0; i < data.messages.length; i++) {
-               mes = data.messages[i];
-               let p_mes = document.createElement('p');
-               p_mes.innerHTML = mes.timestamp + mes.username + mes.body;
-               chat_text.appendChild(p_mes);
-           }
-           chat_text.scrollTop = chat_text.scrollHeight;
-}
-};
 
 showMes();
 setInterval(() => showMes(), 3000);
 
-
-
-<!--    $.getJSON("http://127.0.0.1:8000/api/messages/",-->
-<!--       function(data) {-->
-<!--           let mes = '';-->
-<!--           for (var i = 0; i < data.messages.length; i++) {-->
-<!--               mes = data.messages[i];-->
-<!--               let p_mes = document.createElement('p');-->
-<!--               p_mes.innerHTML = mes.timestamp + mes.username + mes.body;-->
-<!--               chat_text.appendChild(p_mes);-->
-<!--           }-->
-<!--           chat_text.scrollTop = chat_text.scrollHeight;-->
-<!--       }-->
-<!--    );-->
-
-
-
-    let status = [];
-
-    console.log("НАСТРОЙКИ 'Settings':");
-
-    console.log("1) Site title: '{{ settings.site_title }}'");
-
-    status = pageStatus("{{ settings.main_page_title }}");
-    console.log("%c2) Main page title: '{{ settings.main_page_title }}' (" + status[0] + " '{{ settings.main_page_title }}')", status[1]);
-
-    status = pageStatus("{{ settings.page_list_title }}");
-    console.log("%c3) Page list title: '{{ settings.page_list_title }}' (" + status[0] + " '{{ settings.page_list_title }}')", status[1]);
-
-    status = colorStatus("{{ settings.header_color }}");
-    console.log("%c4) Header color: '{{ settings.header_color }}' (" + status[0] + ")", status[1]);
-
-    status = colorStatus("{{ settings.up_button_color }}");
-    console.log("%c5) Up button color: '{{ settings.up_button_color }}' (" + status[0] + ")", status[1]);
-
-    status = colorStatus("{{ settings.menu_color }}");
-    console.log("%c6) Menu color: '{{ settings.menu_color }}' (" + status[0] + ")", status[1]);
-
-    status = colorStatus("{{ settings.menu_text_color }}");
-    console.log("%c7) Menu text color: '{{ settings.menu_text_color }}' (" + status[0] + ")", status[1]);
-
-    status = colorStatus("{{ settings.page_color }}");
-    console.log("%c8) Page color: '{{ settings.page_color }}' (" + status[0] + ")", status[1]);
-
-    status = colorStatus("{{ settings.page_text_color }}");
-    console.log("%c9) Page text color: '{{ settings.page_text_color }}' (" + status[0] + ")", status[1]);
-
-    console.log("10) Page text max width: {{ settings.page_text_max_width }}px");
-
-    status = loadStatus("{{ header_img_exists }}");
-    console.log("%c11) Файл 'header.jpg' " + status[0], status[1]);
-
-    status = loadStatus("{{ logo_exists }}");
-    console.log("%c12) Файл 'logo.png' " + status[0], status[1]);
-
-    status = loadStatus("{{ favicon_exists }}");
-    console.log("%c13) Файл 'favicon.png' " + status[0], status[1]);
-
-    function loadStatus(is_img) {
-        if (is_img == "True") {
-            return ["загружен в '{{ STATIC_ROOT }}'", ''];
-        }
-        return ["НЕ загружен в '{{ STATIC_ROOT }}'", 'color: red;'];
-    }
-
-    function pageStatus(page_title) {
-        str_arr = ["&gt;", "&lt;", "QuerySet", ",", "]", "["];
-        menu_pages = "{{ menu_pages }}";
-        for (let i = 0; i < str_arr.length; i++) {
-            menu_pages = menu_pages.split(str_arr[i]).join("");
-        }
-        let title_arr = menu_pages.split("MenuPage:");
-        for (let n = 0; n < title_arr.length; n++) {
-            if (title_arr[n].trim() == page_title) {
-                return ['есть страница', ''];
-            }
-        }
-        return ['нет страницы', 'color: red;'];
-    }
-
-    function isColor(color) {
-        let color_low = color.toLowerCase();
-        pattern_HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-        pattern_RGBA = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/;
-        if (pattern_HEX.test(color_low) || pattern_RGBA.test(color_low)) {
-            return true;
-        }
-        return false;
-    }
-
-    function colorStatus(hex_color) {
-        if (isColor(hex_color)) {
-            return ['корректный код цвета в настройках', ''];
-        }
-        return ['некорректный код цвета в настройках, применен цвет по умолчанию', 'color: red;'];
-    }
-
-
-    let is_header_img = "{{ header_img_exists }}";
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-
-    if (is_header_img == "True") {
-        let header_color = "{{ settings.header_color }}";
-        if (!(isColor(header_color))){
-            header.style.backgroundImage = "url('{% static 'header.jpg' %}')";
-        } else {
-            function handleTabletChange(e) {
-                if (!e.matches) {
-                    header.style.backgroundImage = "url('{% static 'header.jpg' %}')";
-                } else {
-                    header.style.backgroundImage = 'none';
-                }
-            }
-            mediaQuery.addListener(handleTabletChange);
-            handleTabletChange(mediaQuery);
-        }
-    }
-
-    (function($) {
-        $(function() {
-            $('#up').click(function() {
-                $('body,html').animate({scrollTop:0},250);
-                return false;
-            })
-        })
-    })(jQuery)
-
-    $('#header__burger').click(function(event){
-        event.preventDefault();
-        $('#header__burger, #header__menu, #bef, #mid, #aft').toggleClass('active');
-        $('body').toggleClass('lock');
-
-        if (bef.classList.contains('active')) {
-            if (isColor("{{ settings.menu_text_color }}")) {
-                bef.style.backgroundColor = "{{ settings.menu_text_color }}";
-                mid.style.backgroundColor = "{{ settings.menu_text_color }}";
-                aft.style.backgroundColor = "{{ settings.menu_text_color }}";
-            } else {
-                bef.style.backgroundColor = "#FFFFFF";
-                mid.style.backgroundColor = "#FFFFFF";
-                aft.style.backgroundColor = "#FFFFFF";
-            }
-        } else {
-            if (isColor("{{ settings.up_button_color }}")) {
-                bef.style.backgroundColor = "{{ settings.up_button_color }}";
-                mid.style.backgroundColor = "{{ settings.up_button_color }}";
-                aft.style.backgroundColor = "{{ settings.up_button_color }}";
-            } else {
-                bef.style.backgroundColor = "#FFFFFF";
-                mid.style.backgroundColor = "#FFFFFF";
-                aft.style.backgroundColor = "#FFFFFF";
-            }
-        }
-    });
-
-    let lin_list = container.querySelectorAll('a');
-    if (lin_list.length > 0) {
-        for (let k = 0; k < lin_list.length; k++) {
-            if (lin_list[k].hasAttribute('name')) {
-                lin_list[k].classList.add('anchor');
-            }
-        }
-    }
-
-    let page_text_max_width = Number("{{ settings.page_text_max_width }}");
-    if (page_text_max_width > 300) {
-       container.style.maxWidth = "{{ settings.page_text_max_width }}px";
-    }
 });
-
-
-
-
-
 </script>
 
 </body>

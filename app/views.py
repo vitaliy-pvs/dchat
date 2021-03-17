@@ -30,7 +30,7 @@ settings = Settings.objects.all()
 
 
 def room(request):
-    return render(request, 'room.html', {
+    return render(request, 'base.html', {
         'settings': settings[0],
         'favicon_exists': favicon_exists,
         'logo_exists': logo_exists,
@@ -51,9 +51,11 @@ class MessageView(APIView):
         serializer = MessageSerializer(data=message)
         if serializer.is_valid(raise_exception=True):
             message_saved = serializer.save()
-            # messages_count = Message.objects.all().count()
-            # while messages_count > 300:
-            #     messages_count = Message.objects.all().count()
-
+            messages_count = Message.objects.all().count()
+            messages_count_to_del = messages_count - 100
+            if messages_count_to_del > 0:
+                messages_arr = Message.objects.all().order_by('pk')
+                for number in range(messages_count_to_del - 1):
+                    Message.objects.filter(pk=messages_arr[number].pk).delete()
 
         return Response({"success": "Message from '{}' saved successfully".format(message_saved.username)})
